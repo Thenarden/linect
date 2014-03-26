@@ -31,11 +31,11 @@
 
 
 #define DRIVER_NAME			"linect"
-#define DRIVER_VERSION			"v0.1.2"
-#define DRIVER_VERSION_NUM		0x000102
+#define DRIVER_VERSION		"v0.1.2"
+#define DRIVER_VERSION_NUM	0x000102
 #define DRIVER_DESC			"A MS Kinect driver."
-#define DRIVER_AUTHOR			"Arturo Casal <berfenger [at] gmail.com>"
-#define DRIVER_V4L_NAME			"MS Kinect"
+#define DRIVER_AUTHOR		"Arturo Casal <berfenger [at] gmail.com>, Fabian Schreier <fabian.p.schreier [at] web.de>"
+#define DRIVER_V4L_NAME		"MS Kinect"
 
 #define PREFIX				DRIVER_NAME ": "
 
@@ -394,11 +394,13 @@ void usb_linect_isoc_handler(struct urb *);
 void usb_linect_rgb_isoc_cleanup(struct usb_linect *);
 void usb_linect_depth_isoc_cleanup(struct usb_linect *);
 
+/*
 int v4l_linect_select_video_mode(struct usb_linect *, int, int);
 int v4l_linect_register_rgb_video_device(struct usb_linect *);
 int v4l_linect_unregister_rgb_video_device(struct usb_linect *);
 int v4l_linect_register_depth_video_device(struct usb_linect *);
 int v4l_linect_unregister_depth_video_device(struct usb_linect *);
+*/
 
 int linect_allocate_rgb_buffers(struct usb_linect *);
 int linect_reset_rgb_buffers(struct usb_linect *);

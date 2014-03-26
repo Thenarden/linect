@@ -36,8 +36,8 @@
 #include <linux/mm.h>
 
 #include <linux/usb.h>
-#include <media/v4l2-common.h>
-#include <media/v4l2-ioctl.h>
+//#include <media/v4l2-common.h>
+//#include <media/v4l2-ioctl.h>
 
 #include <linux/proc_fs.h>
 
@@ -785,8 +785,8 @@ static int usb_linect_probe(struct usb_interface *interface, const struct usb_de
 	}
 
 	// Init mutexes, spinlock, etc.
-	init_MUTEX(&dev->cam->mutex_rgb);
-	init_MUTEX(&dev->cam->mutex_depth);
+	sema_init(&dev->cam->mutex_rgb, 1);
+	sema_init(&dev->cam->mutex_depth, 1);
 	mutex_init(&dev->mutex_motor);
 	mutex_init(&dev->cam->mutex_cam);
 	mutex_init(&dev->cam->modlock_rgb);
@@ -841,9 +841,10 @@ static int usb_linect_probe(struct usb_interface *interface, const struct usb_de
 	// Reset motor
 	if (!dev->freemotor)
 		linect_motor_set_tilt_degs(dev, 0);
-	
-	// V4L2 !!
 
+	// TODO: Remove V4L2 deps and replace by some other video output mechanism...
+	// V4L2 !!
+/*
 	// Initialize the video device
 	dev->cam->vdev = video_device_alloc();
 	dev->cam->depth_vdev = video_device_alloc();
@@ -856,12 +857,12 @@ static int usb_linect_probe(struct usb_interface *interface, const struct usb_de
 	if (!dev->cam->depth_vdev) {
 		kfree(dev);
 		return -ENOMEM;
-	}
+	}*/
 
 	// Initialize the camera
 	linect_cam_init(dev);
 	
-	// Register the video device
+/*	// Register the video device
 	err = v4l_linect_register_rgb_video_device(dev);
 
 	if (err) {
@@ -874,7 +875,7 @@ static int usb_linect_probe(struct usb_interface *interface, const struct usb_de
 	if (err) {
 		kfree(dev);
 		return err;
-	}
+	}*/
 
 	// Save our data pointer in this interface device
 	usb_set_intfdata(interface, dev);
@@ -921,8 +922,9 @@ static void usb_linect_disconnect(struct usb_interface *interface)
 			schedule();
 
 		// Unregister the video device
-		v4l_linect_unregister_rgb_video_device(dev);
-		v4l_linect_unregister_depth_video_device(dev);
+		// TODO: Remove V4L2 deps and replace by some other video output mechanism...
+	//	v4l_linect_unregister_rgb_video_device(dev);
+	//	v4l_linect_unregister_depth_video_device(dev);
 	
 	} else {
 		LNT_INFO("Kinect motor disconnected.\n");

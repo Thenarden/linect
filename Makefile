@@ -1,7 +1,7 @@
 KVER := $(shell uname -r)
 MAJMIN := $(shell echo $(KVER) | cut -d . -f 1-2)
 
-ifeq ($(MAJMIN),2.6)
+ifeq ($(MAJMIN),3.10)
 
 ifneq ($(KERNELRELEASE),)
 
@@ -18,7 +18,9 @@ obj-m	+= linect.o
 
 else
 
-KDIR	:= /lib/modules/$(shell uname -r)/build
+KDIR	:= /usr/lib/modules/$(shell uname -r)/build
+#KDIR	:= /lib/modules/3.10.33-1-ARCH/build
+
 PWD	:= $(shell pwd)
 all:
 	$(MAKE) -C $(KDIR) M=$(PWD) modules

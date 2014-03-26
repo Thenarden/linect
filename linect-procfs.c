@@ -55,15 +55,45 @@ extern struct mutex modlock_tmpmotor;
 extern struct mutex modlock_proc;
 
 
-static int proc_read_led(char *page, char **start, off_t off, int count, int *eof, void *data);
-static int proc_write_led(struct file *file, const char *buffer, unsigned long count, void *data);
+//static int proc_read_led(char *page, char **start, off_t off, int count, int *eof, void *data);
+static ssize_t proc_read_led(struct file *filp, char __user *data, size_t count, loff_t *offp);
+//static int proc_write_led(struct file *file, const char *buffer, unsigned long count, void *data);
+static ssize_t proc_write_led (struct file* file, const char __user* buffer, size_t count, loff_t* data);
 
-static int proc_read_motor(char *page, char **start, off_t off, int count, int *eof, void *data);
-static int proc_write_motor_raw(struct file *file, const char *buffer, unsigned long count, void *data);
-static int proc_write_motor_char(struct file *file, const char *buffer, unsigned long count, void *data);
+//static int proc_read_motor(char *page, char **start, off_t off, int count, int *eof, void *data);
+static ssize_t proc_read_motor(struct file *filp, char __user *data, size_t count, loff_t *offp);
+//static int proc_write_motor_raw(struct file *file, const char *buffer, unsigned long count, void *data);
+static ssize_t proc_write_motor_raw (struct file* file, const char __user* buffer, size_t count, loff_t* data);
+//static int proc_write_motor_char(struct file *file, const char *buffer, unsigned long count, void *data);
+static ssize_t proc_write_motor_char (struct file* file, const char __user* buffer, size_t count, loff_t* data);
 
-static int proc_read_accel_char(char *page, char **start, off_t off, int count, int *eof, void *data);
-static int proc_read_accel_raw(char *page, char **start, off_t off, int count, int *eof, void *data);
+//static int proc_read_accel_char(char *page, char **start, off_t off, int count, int *eof, void *data);
+static ssize_t proc_read_accel_char(struct file *filp, char __user *data, size_t count, loff_t *offp);
+//static int proc_read_accel_raw(char *page, char **start, off_t off, int count, int *eof, void *data);
+static ssize_t proc_read_accel_raw(struct file *filp, char __user *data, size_t count, loff_t *offp);
+
+static struct file_operations proc_ops_mot_char = { 
+	.read = proc_read_motor, 
+	.write = proc_write_motor_char 
+};
+
+static struct file_operations proc_ops_mot_raw = { 
+	.read = proc_read_motor, 
+	.write = proc_write_motor_raw 
+};
+
+static struct file_operations proc_ops_led = {
+	.read = proc_read_led,
+	.write = proc_write_led,
+};
+
+static struct file_operations proc_ops_accel_char = {
+	.read = proc_read_accel_char,
+};
+
+static struct file_operations proc_ops_accel_raw = {
+	.read = proc_read_accel_raw,
+};
 
 void linect_proc_create(struct usb_linect *dev)
 {
@@ -82,31 +112,31 @@ void linect_proc_create(struct usb_linect *dev)
 	dev->proc_root = proc_mkdir(dirname, linect_proc_root_entry);
 	
 	// Dev motor char
-	pde = create_proc_entry("motor_char", 0666, dev->proc_root);
-	pde->data = dev;
-	pde->read_proc = proc_read_motor;
-	pde->write_proc = proc_write_motor_char;
+	pde = proc_create_data("motor_char", 0666, dev->proc_root, &proc_ops_mot_char, dev);
+//	pde->data = dev;
+//	pde->read_proc = proc_read_motor;
+//	pde->write_proc = proc_write_motor_char;
 	
 	// Dev motor char
-	pde = create_proc_entry("motor_raw", 0666, dev->proc_root);
-	pde->data = dev;
-	pde->read_proc = proc_read_motor;
-	pde->write_proc = proc_write_motor_raw;
+	pde = proc_create_data("motor_raw", 0666, dev->proc_root, &proc_ops_mot_raw, dev);
+//	pde->data = dev;
+//	pde->read_proc = proc_read_motor;
+//	pde->write_proc = proc_write_motor_raw;
 	
 	// Dev led
-	pde = create_proc_entry("led", 0666, dev->proc_root);
-	pde->data = dev;
-	pde->read_proc = proc_read_led;
-	pde->write_proc = proc_write_led;
+	pde = proc_create_data("led", 0666, dev->proc_root, &proc_ops_led, dev);
+//	pde->data = dev;
+//	pde->read_proc = proc_read_led;
+//	pde->write_proc = proc_write_led;
 	
 	// Dev accel
-	pde = create_proc_entry("accel_char", 0444, dev->proc_root);
-	pde->data = dev;
-	pde->read_proc = proc_read_accel_char;
+	pde = proc_create_data("accel_char", 0444, dev->proc_root, &proc_ops_accel_char, dev);
+//	pde->data = dev;
+//	pde->read_proc = proc_read_accel_char;
 	
-	pde = create_proc_entry("accel_raw", 0444, dev->proc_root);
-	pde->data = dev;
-	pde->read_proc = proc_read_accel_raw;
+	pde = proc_create_data("accel_raw", 0444, dev->proc_root, &proc_ops_accel_raw, dev);
+//	pde->data = dev;
+//	pde->read_proc = proc_read_accel_raw;
 	
 	// Dev motor move
 	
@@ -144,38 +174,52 @@ void linect_proc_destroy(struct usb_linect *dev)
 
 }
 
-static int proc_read_led(char *page, char **start, off_t off, int count, int *eof, void *data)
+//static int proc_read_led(char *page, char **start, off_t off, int count, int *eof, void *data)
+static ssize_t proc_read_led(struct file *filp, char __user * buffer, size_t count, loff_t *data)
 {
 	int len;
-	struct usb_linect *dev;
+	struct usb_linect* dev;
 	
-	dev = data;
+	dev = (struct usb_linect*)data;
 
-	len = sprintf(page, "values:\n0 = off\n1 = green\n2 = red\n3 = yellow\n4 = blink yellow\n5 = blink green\n6 = blink red yellow\n");
+	len = sprintf(buffer, "values:\n0 = off\n1 = green\n2 = red\n3 = yellow\n4 = blink yellow\n5 = blink green\n6 = blink red yellow\n");
 
 	return len;
 }
 
-static int proc_write_led(struct file *file, const char *buffer, unsigned long count, void *data)
+//static int proc_write_led(struct file *file, const char *buffer, unsigned long count, void *data)
+static ssize_t proc_write_led (struct file* file, const char __user* buffer, size_t count, loff_t* data)
 {
 	int len;
 	struct usb_linect *dev;
 	unsigned int led;
-	
-	dev = data;
+	int ret;
+
+	dev = (struct usb_linect*)data;
 	led = 0;
 	
 	if (count < 1) return -EINVAL;
 	
 	len = copy_from_user(&led, buffer, 1);
+
+	if ((led >= '0') && (led <= '9'))
+		led -= '0';
 		
 	if (led >= 0 && led <= 6) {
-		LNT_DEBUG("Set led to %d \n", led);
-		linect_motor_set_led(dev, led);
-	} else if (led >= 48 && led <= 54) {
-		LNT_DEBUG("Set led to %d \n", led-48);
-		linect_motor_set_led(dev, led-48);
-		
+		LNT_INFO("Set led to %d \n", led);
+		ret = linect_motor_set_led(dev, led);
+
+		if (ret < 0)
+		{
+			ret *= -1;
+
+
+			LNT_INFO("ERROR: %d \n", ret);
+		}
+		else
+		{
+			LNT_INFO("LED status set. \n");
+		}
 	} else {
 		return -EINVAL;
 	}
@@ -183,22 +227,24 @@ static int proc_write_led(struct file *file, const char *buffer, unsigned long c
 	return count;
 }
 
-static int proc_read_motor(char *page, char **start, off_t off, int count, int *eof, void *data)
+//static int proc_read_motor(char *page, char **start, off_t off, int count, int *eof, void *data)
+static ssize_t proc_read_motor(struct file *filp, char __user *buffer, size_t count, loff_t *data)
 {
 	int len;
 
-	len = sprintf(page, "range = [0, 62];\nup = 62;\ndown = 0;\nmiddle = 31;\n");
+	len = sprintf(buffer, "range = [0, 62];\nup = 62;\ndown = 0;\nmiddle = 31;\n");
 	
 	return len;
 }
 
-static int proc_write_motor_raw(struct file *file, const char *buffer, unsigned long count, void *data)
+//static int proc_write_motor_raw(struct file *file, const char *buffer, unsigned long count, void *data)
+static ssize_t proc_write_motor_raw (struct file* file, const char __user* buffer, size_t count, loff_t* data)
 {
 	int len;
 	struct usb_linect *dev;
 	unsigned int deg;
-	
-	dev = data;
+
+	dev = (struct usb_linect*)data;
 	deg = 0;
 	
 	if (count < 1) return -EINVAL;
@@ -207,7 +253,7 @@ static int proc_write_motor_raw(struct file *file, const char *buffer, unsigned 
 	
 	//led >>= 23;
 	
-	LNT_DEBUG("Set motor angle to: %d \n", deg);
+	LNT_INFO("Set motor angle to: %d \n", deg);
 		
 	if (deg < 0 || deg > 62) {
 		return -EINVAL;
@@ -218,14 +264,15 @@ static int proc_write_motor_raw(struct file *file, const char *buffer, unsigned 
 	return count;
 }
 
-static int proc_write_motor_char(struct file *file, const char *buffer, unsigned long count, void *data)
+//static int proc_write_motor_char(struct file *file, const char *buffer, unsigned long count, void *data)
+static ssize_t proc_write_motor_char (struct file* file, const char __user* buffer, size_t count, loff_t* data)
 {
 	int len;
 	struct usb_linect *dev;
 	char deg_chr[3];
 	unsigned int deg;
-	
-	dev = data;
+
+	dev = (struct usb_linect*)data;
 	
 	if (count < 1) return -EINVAL;
 	
@@ -235,7 +282,7 @@ static int proc_write_motor_char(struct file *file, const char *buffer, unsigned
 	
 	deg = (unsigned int)simple_strtol(deg_chr, NULL, 10);
 		
-	LNT_DEBUG("Set motor angle to: %d \n", deg);
+	LNT_INFO("Set motor angle to: %d \n", deg);
 		
 	if (deg < 0 || deg > 62) {
 		return -EINVAL;
@@ -246,34 +293,36 @@ static int proc_write_motor_char(struct file *file, const char *buffer, unsigned
 	return count;
 }
 
-static int proc_read_accel_char(char *page, char **start, off_t off, int count, int *eof, void *data)
+//static int proc_read_accel_char(char *page, char **start, off_t off, int count, int *eof, void *data)
+static ssize_t proc_read_accel_char(struct file *filp, char __user *buffer, size_t count, loff_t *data)
 {
 	int len;
 	struct usb_linect *dev;
 	uint16_t x, y, z;
-	
-	dev = data;
+
+	dev = (struct usb_linect*)data;
 	
 	linect_get_raw_accel(dev, &x, &y, &z);
 
-	len = sprintf(page, "%d %d %d\n", x, y, z);
+	len = sprintf(buffer, "%d %d %d\n", x, y, z);
 	
 	return len;
 }
 
-static int proc_read_accel_raw(char *page, char **start, off_t off, int count, int *eof, void *data)
+//static int proc_read_accel_raw(char *page, char **start, off_t off, int count, int *eof, void *data)
+static ssize_t proc_read_accel_raw(struct file *filp, char __user *buffer, size_t count, loff_t *data)
 {
 	int len;
 	struct usb_linect *dev;
 	uint16_t pts[3];
-	
-	dev = data;
+
+	dev = (struct usb_linect*)data;
 	
 	linect_get_raw_accel(dev, &pts[0], &pts[1], &pts[2]);
 	
 	len = count < sizeof(uint16_t)*3 ? count : sizeof(uint16_t)*3;
 	
-	len = copy_to_user(page, pts, len);
+	len = copy_to_user(filp, pts, len);
 	
 	return len;
 }
